@@ -1,7 +1,7 @@
 CC=g++ -g -Wall
 
 # List of source files for your disk scheduler
-SCHEDULER_SOURCES=file1.cpp file2.cpp
+SCHEDULER_SOURCES=scheduler.cpp
 
 # Generate the names of the disk scheduler's object files
 SCHEDULER_OBJS=${SCHEDULER_SOURCES:.cpp=.o}

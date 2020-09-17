@@ -6,10 +6,10 @@
     "configurations": [
         {
             "name": "(gdb) Launch",
-            "type": "cppdbg",
+             "type": "cppdbg",
             "request": "launch",
-            "program": "enter program name, for example ${workspaceFolder}/a.out",
-            "args": [],
+            "program": "${workspaceFolder}/scheduler",
+            "args": ["1", "disk.in0"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -20,6 +20,10 @@
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "ignore SIGUSR1 signal",
+                    "text": "handle SIGUSR1 nostop noprint pass"
                 }
             ]
         }
