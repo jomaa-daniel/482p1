@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <list>
 #include "disk.h"
+#include <unordered_set>
 
 using std::string;
 using std::ifstream;
@@ -21,7 +22,8 @@ using std::begin;
 
 int max_disk_queue = 0;
 mutex mutex1;
-cv cv1;
+cv cv_requester;
+cv cv_servicer;
 char ** argv = nullptr;
 int argc = 0;
 
@@ -29,10 +31,11 @@ class OrderedList
 {
     private:
     list<std::pair<int,int>> lst;
-
+    std::unordered_set<int> set;
     public:
     void push(int requester, int track)
     {
+        set.insert(requester);
         // mutex1.lock();
        // cout << "pushing " << requester << "," << track << endl;
         if (lst.empty())
@@ -64,16 +67,19 @@ class OrderedList
 
         auto ret = * closest;
         lst.erase(closest);
+        set.erase(closest->first);
         return ret;
         // mutex1.unlock();
     }
 
     void print()
     {
+        if (lst.empty()){cout << "Queue Empty\n"; return;}
         for (auto & pr : lst)
         {
             cout << pr.first << "," << pr.second << " ";
         }
+        cout << endl;
     }
 
     int size()
@@ -83,38 +89,47 @@ class OrderedList
         // mutex1.unlock();
     }
 
+    bool contains(int requester)
+    {
+        return set.find(requester) != end(set);
+    }
+
 };
 
 int unfinished_tasks = 0;
 OrderedList q;
 
 
-
-void consumer(void * a)
+void requester(void * a)
 {
+    //cout << "hello";
     char * filename = (char*) a;
     int len = strlen(filename);
     int requester = filename[len - 1] - '0';
-    //cout << requester << " " << filename << endl;
     ifstream file(filename);
     string track;
     while (file >> track)
     {
         int track_i = std::stoi(track);
         mutex1.lock();
-        while (q.size() >= max_disk_queue)
+        while (q.size() >= max_disk_queue or q.contains(requester))
         {
-            cv1.wait(mutex1);
+            cout << "Requester " << requester << " waiting " << endl;
+            cv_requester.wait(mutex1);
+            cout << "Requester woke up\n";
         }
-        // mutex1.lock();
+
         q.push(requester, track_i);
+        q.print();
         print_request(requester, track_i);
-        cv1.signal();
-        // mutex1.unlock();
+        mutex1.unlock(); 
+        cout << "servicer Signaled\n";
+        cv_servicer.signal();
     }
-    // mutex1.lock();
-    unfinished_tasks--;
-    // mutex1.unlock();
+    // TODO this could be wrong
+    mutex1.lock();
+    unfinished_tasks--; // signal the servicer, it might be waiting
+    mutex1.unlock();
 }
 
 
@@ -124,27 +139,30 @@ void servicer(void *a)
     // deploy consumer threads
 
     for (int i = 2; i < argc; ++i){
-        thread *t1 = new thread((thread_startfunc_t) consumer, (void *) argv[i]);
+        thread *t1 = new thread((thread_startfunc_t) requester, (void *) argv[i]);
         threads.push_back(t1);
     }
     int currentTrack = 0;
-    // mutex1.lock();
+    mutex1.lock();
     while (unfinished_tasks != 0)
     {
-        // mutex1.unlock();
         // if the queue is not full go to sleep, wait for signal
-        mutex1.lock();
         while (q.size() < max_disk_queue)
         {
-            cv1.wait(mutex1);
+            cout << "Servicer waiting" << endl; 
+            cv_servicer.wait(mutex1);
+            cout << "servicer woke up\n";
         }
+        // TODO this will error if the servicer wakes up
         // queue is now full, service a disk I/O
-        // mutex1.lock();
         auto nextDiskIO = q.next(currentTrack);
         currentTrack = nextDiskIO.second;
+        q.print();
         print_service(nextDiskIO.first, nextDiskIO.second);
-        cv1.signal();
+        cout << "requester signaled\n";
+        cv_requester.broadcast(); // should be broadcast (but it relies on the contains condition)
     }
+    mutex1.unlock();
 
     for (auto ptr : threads)
     {
@@ -159,8 +177,7 @@ int main(int argc_, char ** argv_)
     argv = argv_;  
     max_disk_queue = std::stoi(argv[1]);
     unfinished_tasks = argc - 2;
-    cpu::boot((thread_startfunc_t) servicer, (void *) argv[1], 0);
-    cout << endl;
+    cpu::boot((thread_startfunc_t) servicer, (void *) argv[1],1);
 }
 
 
