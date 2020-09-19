@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include <list>
 #include "disk.h"
-#include <unordered_set>
+#include <unordered_map>
+#include <limits>
 
 using std::string;
 using std::ifstream;
@@ -30,63 +31,52 @@ int argc = 0;
 class OrderedList
 {
     private:
-    list<std::pair<int,int>> lst;
-    std::unordered_set<int> set;
+    std::unordered_map<int, int> set;
     public:
     void push(int requester, int track)
     {
-        set.insert(requester);
-        // mutex1.lock();
-       // cout << "pushing " << requester << "," << track << endl;
-        if (lst.empty())
-        {
-            lst.emplace_front(requester, track);
-            return;
-        }
-        auto cursor = begin(lst);
-
-        while (cursor != end(lst) and cursor->second < track)
-        {
-            ++cursor;
-        }
-        lst.emplace(cursor, requester, track);
-        // mutex1.unlock();
+        set[requester] = track;
     }
 
     std::pair<int, int> next(int track)
     {
-        // mutex1.lock();
-        auto cursor = begin(lst);
-
-        while (cursor->second != track)
+        if (set.empty())
         {
-            ++cursor;
+            cout << "Next called on empty Queue\n";
+            return std::make_pair(-1, -1);
         }
-        auto closest = (abs(std::prev(cursor)->second - track) 
-        < abs(std::next(cursor)->second - track)) ? std::next(cursor) : std::prev(cursor);
 
-        auto ret = * closest;
-        lst.erase(closest);
-        set.erase(closest->first);
-        return ret;
-        // mutex1.unlock();
+        std::pair<int,int> closest_pair; 
+        int minDist = std::numeric_limits<int>::max();
+        for (auto& pair : set)
+        {
+            if (minDist > abs(pair.second - track))
+            {
+                minDist = abs(pair.second - track);
+                closest_pair = pair;
+            }
+        }
+
+        set.erase(closest_pair.first);
+        return closest_pair;
     }
 
     void print()
     {
-        if (lst.empty()){cout << "Queue Empty\n"; return;}
-        for (auto & pr : lst)
+        if (set.empty())
         {
-            cout << pr.first << "," << pr.second << " ";
+            cout << "Empty Queue";
+        }
+        for (auto& pair :set)
+        {
+            cout << pair.first << "," << pair.second << " ";
         }
         cout << endl;
     }
 
     int size()
     {
-        // mutex1.lock();
-        return lst.size();
-        // mutex1.unlock();
+        return set.size();
     }
 
     bool contains(int requester)
@@ -105,30 +95,35 @@ void requester(void * a)
     //cout << "hello";
     char * filename = (char*) a;
     int len = strlen(filename);
-    int requester = filename[len - 1] - '0';
+    int requester =      filename[len - 1] - '0';
     ifstream file(filename);
     string track;
+    
+    mutex1.lock();
     while (file >> track)
     {
         int track_i = std::stoi(track);
-        mutex1.lock();
+        // this will die if it contains again because it goes to sleep without signaling someone else
         while (q.size() >= max_disk_queue or q.contains(requester))
         {
-            cout << "Requester " << requester << " waiting " << endl;
+            //cout << "Requester " << requester << " waiting " << endl;
             cv_requester.wait(mutex1);
-            cout << "Requester woke up\n";
+            //cout << "Requester woke up\n";
         }
 
         q.push(requester, track_i);
-        q.print();
+        //q.print();
         print_request(requester, track_i);
-        mutex1.unlock(); 
-        cout << "servicer Signaled\n";
+        //cout << "servicer Signaled\n";
         cv_servicer.signal();
     }
     // TODO this could be wrong
-    mutex1.lock();
     unfinished_tasks--; // signal the servicer, it might be waiting
+    if (unfinished_tasks < max_disk_queue)
+    {
+        //cout << "unfinished tasks is now " << unfinished_tasks << endl;
+        max_disk_queue = unfinished_tasks;
+    }
     mutex1.unlock();
 }
 
@@ -149,17 +144,17 @@ void servicer(void *a)
         // if the queue is not full go to sleep, wait for signal
         while (q.size() < max_disk_queue)
         {
-            cout << "Servicer waiting" << endl; 
+            //cout << "Servicer waiting" << endl; 
             cv_servicer.wait(mutex1);
-            cout << "servicer woke up\n";
+            //cout << "servicer woke up\n";
         }
-        // TODO this will error if the servicer wakes up
+
         // queue is now full, service a disk I/O
         auto nextDiskIO = q.next(currentTrack);
         currentTrack = nextDiskIO.second;
-        q.print();
+        //q.print();
         print_service(nextDiskIO.first, nextDiskIO.second);
-        cout << "requester signaled\n";
+        //cout << "requester signaled\n";
         cv_requester.broadcast(); // should be broadcast (but it relies on the contains condition)
     }
     mutex1.unlock();
@@ -168,7 +163,7 @@ void servicer(void *a)
     {
         ptr->join();
     }
-    q.print();
+    //q.print();
 }
 
 int main(int argc_, char ** argv_)
