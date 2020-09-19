@@ -9,7 +9,7 @@
              "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/scheduler",
-            "args": ["1", "disk.in0"],
+            "args": ["3", "disk.in0","disk.in1", "disk.in2", "disk.in3", "disk.in4"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

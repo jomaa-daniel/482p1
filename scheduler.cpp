@@ -114,16 +114,23 @@ void requester(void * a)
         q.push(requester, track_i);
         //q.print();
         print_request(requester, track_i);
+       // cout << "Max Size: " << max_disk_queue << endl;
+
         //cout << "servicer Signaled\n";
         cv_servicer.signal();
     }
+    // wait till im serviced THEN --
     // TODO this could be wrong
+    while (q.contains(requester))
+    {
+        cv_requester.wait(mutex1);
+    }
     unfinished_tasks--; // signal the servicer, it might be waiting
     if (unfinished_tasks < max_disk_queue)
     {
-        //cout << "unfinished tasks is now " << unfinished_tasks << endl;
         max_disk_queue = unfinished_tasks;
     }
+    cv_servicer.signal();
     mutex1.unlock();
 }
 
@@ -139,7 +146,7 @@ void servicer(void *a)
     }
     int currentTrack = 0;
     mutex1.lock();
-    while (unfinished_tasks != 0)
+    while (unfinished_tasks != 1)
     {
         // if the queue is not full go to sleep, wait for signal
         while (q.size() < max_disk_queue)
@@ -155,6 +162,7 @@ void servicer(void *a)
         //q.print();
         print_service(nextDiskIO.first, nextDiskIO.second);
         //cout << "requester signaled\n";
+        
         cv_requester.broadcast(); // should be broadcast (but it relies on the contains condition)
     }
     mutex1.unlock();
@@ -172,7 +180,7 @@ int main(int argc_, char ** argv_)
     argv = argv_;  
     max_disk_queue = std::stoi(argv[1]);
     unfinished_tasks = argc - 2;
-    cpu::boot((thread_startfunc_t) servicer, (void *) argv[1],1);
+    cpu::boot((thread_startfunc_t) servicer, (void *) argv[1],0);
 }
 
 

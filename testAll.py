@@ -23,3 +23,25 @@ for i in range(3):
         print(len(output),"==",len(test1_validation_file))
     else:
         print(len(output), "!=", len(test1_validation_file))
+# test1_validation_file = open(validation_files[2]).read()
+# while True:
+#     popen  = subprocess.Popen(command_line_args[2], stdout=subprocess.PIPE)
+#     popen.wait()
+#     output = popen.stdout.read().decode("utf-8")
+#     output_split = output.split('\n')
+#     if output_split[0][10] == '0' and output_split[1][10] == '1' and output_split[2][10] == '2' \
+#     and output_split[17][18] == '0' and output_split[18][18] == '4' and output_split[19][18] == '2':
+#         print("--------- test", 2, "----------------")
+#         print("OUTPUT: ")
+#         print(output) 
+#         print("Expected: ")
+#         print(test1_validation_file)
+#         output = output.split('\n')
+#         output.pop()
+#         test1_validation_file = test1_validation_file.split('\n')
+#         if len(output) == len(test1_validation_file):
+#             print(len(output),"==",len(test1_validation_file))
+#         else:
+#             print(len(output), "!=", len(test1_validation_file))
+# 0 1 2 3 4  
+#   1
