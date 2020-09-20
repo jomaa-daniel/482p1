@@ -88,6 +88,7 @@ class OrderedList
 
 int unfinished_tasks = 0;
 OrderedList q;
+int finished_tasks = 0;
 
 
 void requester(void * a)
@@ -115,7 +116,6 @@ void requester(void * a)
         //q.print();
         print_request(requester, track_i);
        // cout << "Max Size: " << max_disk_queue << endl;
-
         //cout << "servicer Signaled\n";
         cv_servicer.signal();
     }
@@ -144,18 +144,22 @@ void servicer(void *a)
         thread *t1 = new thread((thread_startfunc_t) requester, (void *) argv[i]);
         threads.push_back(t1);
     }
+    if (unfinished_tasks < max_disk_queue)
+    {
+        max_disk_queue = unfinished_tasks;
+    }
     int currentTrack = 0;
     mutex1.lock();
-    while (unfinished_tasks != 1)
+    while (unfinished_tasks != 0) 
     {
         // if the queue is not full go to sleep, wait for signal
-        while (q.size() < max_disk_queue)
+        while (q.size() < max_disk_queue) 
         {
             //cout << "Servicer waiting" << endl; 
             cv_servicer.wait(mutex1);
             //cout << "servicer woke up\n";
         }
-
+        if (unfinished_tasks == 0) {break;}
         // queue is now full, service a disk I/O
         auto nextDiskIO = q.next(currentTrack);
         currentTrack = nextDiskIO.second;
@@ -163,7 +167,7 @@ void servicer(void *a)
         print_service(nextDiskIO.first, nextDiskIO.second);
         //cout << "requester signaled\n";
         
-        cv_requester.broadcast(); // should be broadcast (but it relies on the contains condition)
+        cv_requester.broadcast(); 
     }
     mutex1.unlock();
 
