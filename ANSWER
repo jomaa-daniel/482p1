@@ -22,3 +22,17 @@ and check their conditions
 
 PART B:
 
+
+NOTE: look for all the places that i note "MIDTERM CHANGE"
+
+I pinpointed the cause of the great amount of thread wakeups to the fact that i am
+using CV broadcast to wake up all R number of requesters during the steady state
+every time i service one request. This is inefficient because i know exaclty which
+thread that needs to wake up next, that being the next closest track. 
+I thus single that thread out and wake it up. However once a thread has 
+requested its last track, other tracks need to fill the spot since the servicer
+might simply go back to sleep since the thread that woke up after having its last 
+track serviced did not push anything on the quueue, thus do a special braodcast, see line
+156. I made a map that will map requesters to their private CV, the servicer can
+use this map to wake up the track returned by my "next" function, which returns 
+the next closest track
