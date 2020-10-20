@@ -27,27 +27,21 @@ cv cv_requester;
 cv cv_servicer;
 char ** argv = nullptr;
 int argc = 0;
-
+std::unordered_map<int, cv> condition_set;
 
 class OrderedList
 {
     private:
     // PROJECT UPDATES #1
     std::unordered_map<int, int> set;
-    std::unordered_map<int, cv> condition_set;
 
     public:
     void push(int requester, int track)
     {
         set[requester] = track;
         // push a personal cv to the queue along with it
-        condition_set[requester] = cv();
     }
 
-    cv& getConditionVariable(int requester)
-    {
-        return condition_set[requester];
-    }
 
     std::pair<int, int> next(int track)
     {
@@ -72,7 +66,6 @@ class OrderedList
         // add the erase to condition set so that it can be in parallel with
         // the current set
         set.erase(closest_pair.first);
-        condition_set.erase(closest_pair.first);
         return closest_pair;
     }
 
@@ -111,7 +104,8 @@ void requester(void * a)
 
     char * filename = (char*) a;
     int len = strlen(filename);
-    int requester =      filename[len - 1] - '0';
+    int requester = filename[len - 1] - '0';
+    condition_set[requester] = cv();
     ifstream file(filename);
     string track;
     
@@ -125,7 +119,7 @@ void requester(void * a)
             // MIDTERM CHANGE
             // instead of waiting on a global CV, wait on a single 
             // private CV so that this single thread can be woken up
-            q.getConditionVariable(requester).wait(mutex1);
+            condition_set[requester].wait(mutex1);
         }
 
         q.push(requester, track_i);
@@ -140,7 +134,7 @@ void requester(void * a)
         // MIDTERM CHANGE
         // instead of waiting on a global CV, wait on a single 
         // private CV so that this single thread can be woken up
-        q.getConditionVariable(requester).wait(mutex1);
+        condition_set[requester].wait(mutex1);
     }
     unfinished_tasks--; // signal the servicer, it might be waiting
     if (unfinished_tasks < max_disk_queue)
@@ -185,7 +179,7 @@ void servicer(void *a)
         // instead of broacasting to all of the threads, 
         // pinpoint the single thread that needs to wake up
         // and wake it up with a lookup
-        q.getConditionVariable(nextDiskIO.first).signal(); 
+        condition_set[nextDiskIO.first].signal(); 
     }
     mutex1.unlock();
 
