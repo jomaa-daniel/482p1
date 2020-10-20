@@ -28,14 +28,25 @@ cv cv_servicer;
 char ** argv = nullptr;
 int argc = 0;
 
+
 class OrderedList
 {
     private:
+    // PROJECT UPDATES #1
     std::unordered_map<int, int> set;
+    std::unordered_map<int, cv> condition_set;
+
     public:
     void push(int requester, int track)
     {
         set[requester] = track;
+        // push a personal cv to the queue along with it
+        condition_set[requester] = cv();
+    }
+
+    cv& getConditionVariable(int requester)
+    {
+        return condition_set[requester];
     }
 
     std::pair<int, int> next(int track)
@@ -56,8 +67,12 @@ class OrderedList
                 closest_pair = pair;
             }
         }
-
+        
+        // MIDTERM CHANGE
+        // add the erase to condition set so that it can be in parallel with
+        // the current set
         set.erase(closest_pair.first);
+        condition_set.erase(closest_pair.first);
         return closest_pair;
     }
 
@@ -93,7 +108,7 @@ int finished_tasks = 0;
 
 void requester(void * a)
 {
-    //cout << "hello";
+
     char * filename = (char*) a;
     int len = strlen(filename);
     int requester =      filename[len - 1] - '0';
@@ -107,23 +122,25 @@ void requester(void * a)
         // this will die if it contains again because it goes to sleep without signaling someone else
         while (q.size() >= max_disk_queue or q.contains(requester))
         {
-            //cout << "Requester " << requester << " waiting " << endl;
-            cv_requester.wait(mutex1);
-            //cout << "Requester woke up\n";
+            // MIDTERM CHANGE
+            // instead of waiting on a global CV, wait on a single 
+            // private CV so that this single thread can be woken up
+            q.getConditionVariable(requester).wait(mutex1);
         }
 
         q.push(requester, track_i);
         //q.print();
         print_request(requester, track_i);
-       // cout << "Max Size: " << max_disk_queue << endl;
-        //cout << "servicer Signaled\n";
+
         cv_servicer.signal();
     }
-    // wait till im serviced THEN --
-    // TODO this could be wrong
+
     while (q.contains(requester))
     {
-        cv_requester.wait(mutex1);
+        // MIDTERM CHANGE
+        // instead of waiting on a global CV, wait on a single 
+        // private CV so that this single thread can be woken up
+        q.getConditionVariable(requester).wait(mutex1);
     }
     unfinished_tasks--; // signal the servicer, it might be waiting
     if (unfinished_tasks < max_disk_queue)
@@ -155,19 +172,20 @@ void servicer(void *a)
         // if the queue is not full go to sleep, wait for signal
         while (q.size() < max_disk_queue) 
         {
-            //cout << "Servicer waiting" << endl; 
             cv_servicer.wait(mutex1);
-            //cout << "servicer woke up\n";
         }
         if (unfinished_tasks == 0) {break;}
+
         // queue is now full, service a disk I/O
         auto nextDiskIO = q.next(currentTrack);
         currentTrack = nextDiskIO.second;
-        //q.print();
         print_service(nextDiskIO.first, nextDiskIO.second);
-        //cout << "requester signaled\n";
-        
-        cv_requester.broadcast(); 
+
+        // MIDTERM CHANGE
+        // instead of broacasting to all of the threads, 
+        // pinpoint the single thread that needs to wake up
+        // and wake it up with a lookup
+        q.getConditionVariable(nextDiskIO.first).signal(); 
     }
     mutex1.unlock();
 
