@@ -1,1 +1,24 @@
-asdf
+PART A
+A1:
+1
+A2:
+
+During the steady state: A servicer thread will wake up, check to see if the
+queue is full (max_disk_queue) or if it has already pushed (q.contains(requester))
+assuming it is in the steady state and it is full it will print request then signal
+the servicer to wake up which will service the request given that the queue has just
+been popped
+
+A3:
+R where R is the number of waiting requesters
+
+A4:
+during the steady state all running requester wait on cv_requester whether or not
+they have just pushed their last disk request, since after a requester breaks out of
+the loop at line 104 it will re-enter the cv_requester at line 126 before unlocking
+and the servicer running when it calls broadcast where all R requesters wake up
+and check their conditions
+
+
+PART B:
+
