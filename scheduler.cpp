@@ -98,6 +98,16 @@ int unfinished_tasks = 0;
 OrderedList q;
 int finished_tasks = 0;
 
+void broadcast(int current_requester)
+{
+    for (auto&  each_cv : condition_set)
+    {
+        if (each_cv.first != current_requester)
+        {
+            each_cv.second.signal();
+        }
+    }
+}
 
 void requester(void * a)
 {
@@ -131,16 +141,19 @@ void requester(void * a)
 
     while (q.contains(requester))
     {
+        //cout << requester << "slept\n";
         // MIDTERM CHANGE
         // instead of waiting on a global CV, wait on a single 
         // private CV so that this single thread can be woken up
         condition_set[requester].wait(mutex1);
+        //cout << requester << "woke\n";
     }
     unfinished_tasks--; // signal the servicer, it might be waiting
     if (unfinished_tasks < max_disk_queue)
     {
         max_disk_queue = unfinished_tasks;
     }
+    broadcast(requester);
     cv_servicer.signal();
     mutex1.unlock();
 }
@@ -174,7 +187,7 @@ void servicer(void *a)
         auto nextDiskIO = q.next(currentTrack);
         currentTrack = nextDiskIO.second;
         print_service(nextDiskIO.first, nextDiskIO.second);
-
+        //q.print();
         // MIDTERM CHANGE
         // instead of broacasting to all of the threads, 
         // pinpoint the single thread that needs to wake up
