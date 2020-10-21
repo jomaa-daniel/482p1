@@ -98,14 +98,13 @@ OrderedList q;
 int finished_tasks = 0;
 std::unordered_map<int, cv> condition_set;
 
-void broadcast(int current_requester)
+void broadcast()
 {
     for (auto&  each_cv : condition_set)
     {
-        if (each_cv.first != current_requester)
-        {
-            each_cv.second.signal();
-        }
+
+        each_cv.second.signal();
+        
     }
 }
 
@@ -158,7 +157,7 @@ void requester(void * a)
     // MIDTERM CHANGE 
     // WAKE ALL
     //cout << "DONE\n";
-    broadcast(requester_num);
+    
     cv_servicer.signal();
     mutex1.unlock();
 }
@@ -196,7 +195,8 @@ void servicer(void *a)
         // instead of broacasting to all of the threads, 
         // pinpoint the single thread that needs to wake up
         // and wake it up with a lookup
-        condition_set[nextDiskIO.first].signal();
+        //condition_set[nextDiskIO.first].signal();
+        broadcast();
         //cv_requester.broadcast(); 
     }
     mutex1.unlock();
