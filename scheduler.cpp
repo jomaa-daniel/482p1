@@ -129,7 +129,8 @@ void requester(void * a)
             // MIDTERM CHANGE
             // instead of waiting on a global CV, wait on a single 
             // private CV so that this single thread can be woken up
-            condition_set[requester].wait(mutex1);
+            //condition_set[requester].wait(mutex1);
+            cv_requester.wait(mutex1);
         }
 
         q.push(requester, track_i);
@@ -145,15 +146,19 @@ void requester(void * a)
         // MIDTERM CHANGE
         // instead of waiting on a global CV, wait on a single 
         // private CV so that this single thread can be woken up
-        condition_set[requester].wait(mutex1);
-        //cout << requester << "woke\n";
+        //condition_set[requester].wait(mutex1);
+        cv_requester.wait(mutex1);
     }
     unfinished_tasks--; // signal the servicer, it might be waiting
+    //cout << "ut: " << unfinished_tasks << " MDQ " << max_disk_queue << endl;
     if (unfinished_tasks < max_disk_queue)
     {
         max_disk_queue = unfinished_tasks;
     }
-    broadcast(requester);
+    // MIDTERM CHANGE 
+    // WAKE ALL
+   // cout << "DONE\n";
+    //broadcast(requester);
     cv_servicer.signal();
     mutex1.unlock();
 }
@@ -187,12 +192,12 @@ void servicer(void *a)
         auto nextDiskIO = q.next(currentTrack);
         currentTrack = nextDiskIO.second;
         print_service(nextDiskIO.first, nextDiskIO.second);
-        //q.print();
         // MIDTERM CHANGE
         // instead of broacasting to all of the threads, 
         // pinpoint the single thread that needs to wake up
         // and wake it up with a lookup
-        condition_set[nextDiskIO.first].signal(); 
+        //condition_set[requester].wait(mutex1);
+        cv_requester.broadcast(); 
     }
     mutex1.unlock();
 
