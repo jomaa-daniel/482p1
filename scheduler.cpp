@@ -27,7 +27,6 @@ cv cv_requester;
 cv cv_servicer;
 char ** argv = nullptr;
 int argc = 0;
-std::unordered_map<int, cv> condition_set;
 
 class OrderedList
 {
@@ -97,6 +96,7 @@ class OrderedList
 int unfinished_tasks = 0;
 OrderedList q;
 int finished_tasks = 0;
+std::unordered_map<int, cv> condition_set;
 
 void broadcast(int current_requester)
 {
@@ -114,8 +114,8 @@ void requester(void * a)
 
     char * filename = (char*) a;
     int len = strlen(filename);
-    int requester = filename[len - 1] - '0';
-    condition_set[requester] = cv();
+    int requester_num = filename[len - 1] - '0';
+    condition_set[requester_num] = cv();
     ifstream file(filename);
     string track;
     
@@ -124,30 +124,30 @@ void requester(void * a)
     {
         int track_i = std::stoi(track);
         // this will die if it contains again because it goes to sleep without signaling someone else
-        while (q.size() >= max_disk_queue or q.contains(requester))
+        while (q.size() >= max_disk_queue or q.contains(requester_num))
         {
             // MIDTERM CHANGE
             // instead of waiting on a global CV, wait on a single 
             // private CV so that this single thread can be woken up
-            //condition_set[requester].wait(mutex1);
-            cv_requester.wait(mutex1);
+            condition_set[requester_num].wait(mutex1);
+           // cv_requester.wait(mutex1);
         }
 
-        q.push(requester, track_i);
+        q.push(requester_num, track_i);
         //q.print();
-        print_request(requester, track_i);
+        print_request(requester_num, track_i);
 
         cv_servicer.signal();
     }
 
-    while (q.contains(requester))
+    while (q.contains(requester_num))
     {
         //cout << requester << "slept\n";
         // MIDTERM CHANGE
         // instead of waiting on a global CV, wait on a single 
         // private CV so that this single thread can be woken up
-        //condition_set[requester].wait(mutex1);
-        cv_requester.wait(mutex1);
+        condition_set[requester_num].wait(mutex1);
+        //cv_requester.wait(mutex1);
     }
     unfinished_tasks--; // signal the servicer, it might be waiting
     //cout << "ut: " << unfinished_tasks << " MDQ " << max_disk_queue << endl;
@@ -157,8 +157,8 @@ void requester(void * a)
     }
     // MIDTERM CHANGE 
     // WAKE ALL
-   // cout << "DONE\n";
-    //broadcast(requester);
+    //cout << "DONE\n";
+    broadcast(requester_num);
     cv_servicer.signal();
     mutex1.unlock();
 }
@@ -196,8 +196,8 @@ void servicer(void *a)
         // instead of broacasting to all of the threads, 
         // pinpoint the single thread that needs to wake up
         // and wake it up with a lookup
-        //condition_set[requester].wait(mutex1);
-        cv_requester.broadcast(); 
+        condition_set[nextDiskIO.first].signal();
+        //cv_requester.broadcast(); 
     }
     mutex1.unlock();
 
