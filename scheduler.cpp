@@ -141,7 +141,6 @@ void requester(void * a)
 
     while (q.contains(requester_num))
     {
-        //cout << requester << "slept\n";
         // MIDTERM CHANGE
         // instead of waiting on a global CV, wait on a single 
         // private CV so that this single thread can be woken up
@@ -156,8 +155,9 @@ void requester(void * a)
     }
     // MIDTERM CHANGE 
     // WAKE ALL
-    //cout << "DONE\n";
-    
+    // cout << "DONE\n";
+    condition_set.erase(requester_num);
+    broadcast();
     cv_servicer.signal();
     mutex1.unlock();
 }
@@ -195,8 +195,8 @@ void servicer(void *a)
         // instead of broacasting to all of the threads, 
         // pinpoint the single thread that needs to wake up
         // and wake it up with a lookup
-        //condition_set[nextDiskIO.first].signal();
-        broadcast();
+        condition_set[nextDiskIO.first].signal();
+        //broadcast();
         //cv_requester.broadcast(); 
     }
     mutex1.unlock();
