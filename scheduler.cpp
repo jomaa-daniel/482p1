@@ -155,7 +155,6 @@ void requester(void * a)
     }
     // MIDTERM CHANGE 
     // WAKE ALL
-    // cout << "DONE\n";
     condition_set.erase(requester_num);
     broadcast();
     cv_servicer.signal();

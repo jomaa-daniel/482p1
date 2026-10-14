@@ -1,0 +1,109 @@
+--------- test 0 ----------------
+OUTPUT: 
+requester 0 track 785
+service requester 0 track 785
+requester 0 track 53
+service requester 0 track 53
+No runnable threads.  Exiting.
+
+5 == 5
+--------- test 1 ----------------
+OUTPUT: 
+requester 0 track 785
+requester 1 track 350
+service requester 1 track 350
+requester 1 track 914
+service requester 0 track 785
+requester 0 track 53
+service requester 1 track 914
+service requester 0 track 53
+No runnable threads.  Exiting.
+
+9 == 9
+--------- test 2 ----------------
+OUTPUT: 
+requester 3 track 302
+requester 0 track 785
+requester 4 track 631
+service requester 3 track 302
+requester 2 track 827
+service requester 4 track 631
+requester 3 track 230
+service requester 0 track 785
+requester 4 track 11
+service requester 2 track 827
+requester 0 track 53
+service requester 3 track 230
+requester 1 track 350
+service requester 1 track 350
+requester 1 track 914
+service requester 0 track 53
+requester 2 track 567
+service requester 4 track 11
+service requester 2 track 567
+service requester 1 track 914
+No runnable threads.  Exiting.
+
+21 == 21
+--------- test 3 ----------------
+OUTPUT: 
+requester 1 track 350
+requester 0 track 785
+service requester 1 track 350
+requester 1 track 914
+service requester 0 track 785
+requester 0 track 53
+service requester 1 track 914
+service requester 0 track 53
+No runnable threads.  Exiting.
+
+9 == 9
+--------- test 4 ----------------
+OUTPUT: 
+requester 5 track 846
+requester 7 track 987
+requester 6 track 78946
+service requester 5 track 846
+requester 5 track 984
+service requester 5 track 984
+requester 5 track 259
+service requester 7 track 987
+requester 7 track 7525
+service requester 5 track 259
+requester 5 track 287
+service requester 5 track 287
+requester 5 track 1
+service requester 5 track 1
+requester 5 track 1
+service requester 5 track 1
+requester 5 track 1
+service requester 5 track 1
+requester 5 track 1
+service requester 5 track 1
+service requester 7 track 7525
+requester 7 track 2782557
+service requester 6 track 78946
+requester 6 track 120
+service requester 6 track 120
+requester 6 track 1
+service requester 6 track 1
+requester 6 track 178527
+service requester 6 track 178527
+requester 6 track 472
+service requester 6 track 472
+requester 6 track 145742
+service requester 6 track 145742
+service requester 7 track 2782557
+requester 7 track 44752
+service requester 7 track 44752
+requester 7 track 75
+service requester 7 track 75
+requester 7 track 427
+service requester 7 track 427
+requester 7 track 75247
+service requester 7 track 75247
+requester 7 track 75275
+service requester 7 track 75275
+No runnable threads.  Exiting.
+
+45 == 45
